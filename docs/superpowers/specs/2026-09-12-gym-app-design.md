@@ -31,6 +31,15 @@ restricción y además da PWA real (ícono, pantalla completa).
 Sin service worker: la app requiere internet igual (videos). Límite conocido;
 upgrade: SW cache-first de los 6 archivos estáticos.
 
+## Videos
+
+El preview de Drive (`/file/d/<id>/preview`) falla en browsers embebidos y con
+cookies de terceros bloqueadas (Safari). Decisión: los 47 videos se bajan del
+Drive público y se re-encodean a H.264 720p (lado corto, CRF 27, AAC mono)
+con `encode_videos.sh` → `videos/<id de Drive>.mp4`, servidos desde el mismo
+repo (~0,3-1 MB cada uno). La app usa `<video playsinline controls
+preload="metadata">`. `check_data.js` exige que exista el `.mp4` de cada id.
+
 ## Archivos
 
 - `index.html` — shell: metas PWA, fuente, `<style>` inline, `<main id=view>`,
@@ -59,9 +68,9 @@ Barra inferior fija: **Rutina · Videos · Comida · Técnicas**.
    nombres apilados. Al final el bloque cardio del día (HIIT / cinta inclinada
    / pasadas) con sus pasos y, si hay, link al video de técnica de running.
 3. **Ejercicio** (`#/ej/<id>/<índice de bloque>`) — cabecera con series/reps/
-   descanso/badges. Por cada ejercicio del bloque: video embebido (iframe
-   `https://drive.google.com/file/d/<id>/preview`) o "Sin video del
-   entrenador"; nombre; nota; "Última vez (fecha): 20×10 · 22×8"; tabla por
+   descanso/badges. Por cada ejercicio del bloque: `<video>` local
+   (`videos/<id>.mp4`) o "Sin video del entrenador"; nombre; nota; "Última
+   vez (dd/mm): 20×10 · 22×8"; tabla por
    serie con inputs **kg** y **reps** (placeholder = valor de la última vez).
    Se guarda en `change`. Abajo: botón **Descanso N** (si descanso > 0) y
    **Siguiente ›** (o "Fin · volver al día").
@@ -92,6 +101,7 @@ cuando cambia el implemento (barra Z vs mancuerna vs máquina).
 
 ## Persistencia de pesos
 
+`Store.get/set` síncronos (evita carrera entre dos `change` seguidos).
 `localStorage` clave `gym:<slug ejercicio>` →
 `{ sesiones: [ { fecha: 'YYYY-MM-DD', series: [ { kg, reps } | null ] } ] }`.
 Máximo 30 sesiones por ejercicio (se recortan las viejas). Sesión de hoy =

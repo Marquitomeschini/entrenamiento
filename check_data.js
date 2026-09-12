@@ -19,6 +19,7 @@ for (const d of plan.dias) {
 }
 if (videos.length !== ids.size) errs.push(`videos: ${videos.length} en data.js vs ${ids.size} en Drive`);
 for (const v of videos) if (!ids.has(v.id)) errs.push(`videos: id inexistente ${v.titulo}`);
+for (const id of ids) if (!fs.existsSync(`${__dirname}/videos/${id}.mp4`)) errs.push(`videos/${id}.mp4 no existe (correr ./encode_videos.sh)`);
 for (const m of comida.comidas) if (!m.opciones?.length) errs.push(`comida: ${m.nombre} sin opciones`);
 if (!tecnicas.length) errs.push('tecnicas vacío');
 if (errs.length) { console.error(errs.join('\n')); process.exit(1); }

@@ -1,6 +1,6 @@
 const view = document.getElementById('view');
 const badge = b => `<i class="b b-${slug(b)}">${esc(b)}</i>`;
-const video = id => `<div class="vid"><iframe src="https://drive.google.com/file/d/${encodeURIComponent(id)}/preview" allow="autoplay; fullscreen" loading="lazy" title="Video del ejercicio"></iframe></div>`;
+const video = id => `<div class="vid"><video src="videos/${encodeURIComponent(id)}.mp4" controls playsinline preload="metadata"></video></div>`;
 const serTxt = b => b.aprox ? `${b.aprox}+${b.series}` : String(b.series);
 const dia = id => DATA.plan.dias.find(x => x.id === id);
 
@@ -24,7 +24,50 @@ function renderDia(id) {
   return `<header class="top"><a class="back" href="#/rutina">‹ Rutina</a><span class="eyebrow">${DIAS[d.dia]}</span><h1>${esc(d.titulo)}</h1></header><div class="list">${rows}</div>${cardio}`;
 }
 
-const routes = { rutina: renderRutina, dia: renderDia };
+function renderEjercicio(id, i) {
+  const d = dia(id), b = d?.bloques[+i]; if (!b) return renderRutina();
+  const hoy = hoyISO();
+  const parts = b.ejercicios.map(e => {
+    const k = slug(e.nombre), log = Store.get(k), ult = ultimaVez(log, hoy);
+    const sh = log?.sesiones?.find(s => s.fecha === hoy);
+    const filas = Array.from({ length: b.series }, (_, n) => {
+      const s = sh?.series?.[n] || {}, u = ult?.series?.[n] || {};
+      const inp = (f, ph, mode, step) => `<input type="number" inputmode="${mode}"${step ? ` step="${step}"` : ''} placeholder="${esc(u[f] ?? ph)}" value="${esc(s[f] ?? '')}" data-k="${k}" data-n="${n}" data-f="${f}" aria-label="${f} serie ${n + 1}">`;
+      return `<tr><td>${n + 1}</td><td>${inp('kg', 'kg', 'decimal', '0.5')}</td><td>${inp('reps', 'reps', 'numeric')}</td></tr>`;
+    }).join('');
+    const ultTxt = ult ? `Última vez (${ult.fecha.slice(5).split('-').reverse().join('/')}): ${ult.series.filter(s => s?.kg).map(s => `${s.kg}×${s.reps ?? '?'}`).join(' · ')}` : 'Sin registro previo';
+    return `<article class="ej">${e.video ? video(e.video) : '<div class="novideo">Sin video del entrenador para este ejercicio</div>'}
+      <h2>${esc(e.nombre)}</h2>${e.nota ? `<p class="nota">${esc(e.nota)}</p>` : ''}<p class="ult">${ultTxt}</p>
+      <table class="log"><thead><tr><th>Serie</th><th>kg</th><th>reps</th></tr></thead><tbody>${filas}</tbody></table></article>`;
+  });
+  const next = d.bloques[+i + 1] ? `<a class="btn ghost" href="#/ej/${d.id}/${+i + 1}">Siguiente ›</a>` : `<a class="btn ghost" href="#/dia/${d.id}">Fin · volver al día</a>`;
+  return `<header class="top"><a class="back" href="#/dia/${d.id}">‹ ${esc(d.titulo)}</a>
+    <div class="spec"><span><b>${serTxt(b)}</b> series</span><span>${esc(b.reps)}</span><span>desc. <b>${fmtDesc(b.descanso)}</b></span></div>
+    ${b.badges.length ? `<div class="badges">${b.badges.map(badge).join('')}</div>` : ''}</header>${parts.join('')}
+    <div class="actions">${b.descanso ? `<button class="btn" data-timer="${b.descanso}">Descanso ${fmtDesc(b.descanso)}</button>` : ''}${next}</div>`;
+}
+
+function renderVideos() {
+  const grupos = [...new Set(DATA.videos.map(v => v.grupo))];
+  return `<header class="top"><span class="eyebrow">${DATA.videos.length} videos · @aguspazfit</span><h1>Videos</h1></header>` +
+    grupos.map(g => `<h2>${esc(g)}</h2><div class="list">${DATA.videos.filter(v => v.grupo === g).map(v => `<a class="row" href="#/video/${v.id}"><b>${esc(v.titulo)}</b><span class="play">▶</span></a>`).join('')}</div>`).join('');
+}
+function renderVideo(id) {
+  const v = DATA.videos.find(x => x.id === id); if (!v) return renderVideos();
+  return `<header class="top"><a class="back" href="#/videos">‹ Videos</a><span class="eyebrow">${esc(v.grupo)}</span><h1>${esc(v.titulo)}</h1></header>${video(v.id)}`;
+}
+function renderComida() {
+  const c = DATA.comida;
+  return `<header class="top"><span class="eyebrow">${c.kcal} kcal · 3 comidas · pesos crudos</span><h1>Alimentación</h1></header>
+  <div class="macros"><div><small>Proteína</small><b>~${c.macros.P}g</b></div><div><small>Grasas</small><b>~${c.macros.G}g</b></div><div><small>Carbos</small><b>~${c.macros.C}g</b></div></div>
+  ${c.comidas.map(m => `<section class="meal m-${slug(m.nombre)}"><h2>${esc(m.nombre)}<small>${esc(m.kcal)}</small></h2>
+    ${m.opciones.map((o, i) => `<details${i ? '' : ' open'}><summary><b>${esc(o.nombre)}</b><span>~${o.kcal} kcal</span><small>P ${o.P} g · G ${o.G} g · C ${o.C} g</small></summary><ul>${o.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`).join('')}
+    ${m.nota ? `<p class="nota">${esc(m.nota)}</p>` : ''}</section>`).join('')}
+  <h2>Reglas</h2><dl class="reglas">${c.reglas.map(r => `<dt>${esc(r.titulo)}</dt><dd>${esc(r.texto)}</dd>`).join('')}</dl>`;
+}
+const renderTecnicas = () => `<header class="top"><span class="eyebrow">Referencia rápida</span><h1>Técnicas</h1></header><dl class="reglas">${DATA.tecnicas.map(t => `<dt>${badge(t.nombre)}</dt><dd>${esc(t.texto)}</dd>`).join('')}</dl>`;
+
+const routes = { rutina: renderRutina, dia: renderDia, ej: renderEjercicio, videos: renderVideos, video: renderVideo, comida: renderComida, tecnicas: renderTecnicas };
 const TAB = { dia: 'rutina', ej: 'rutina', video: 'videos' };
 
 async function route() {
@@ -37,3 +80,15 @@ async function route() {
 }
 window.addEventListener('hashchange', route);
 route();
+
+view.addEventListener('change', ev => {
+  const el = ev.target; if (!el.dataset.k) return;
+  const hoy = hoyISO(), log = Store.get(el.dataset.k) || { sesiones: [] };
+  let s = log.sesiones.find(x => x.fecha === hoy);
+  if (!s) { s = { fecha: hoy, series: [] }; log.sesiones.push(s); }
+  const n = +el.dataset.n;
+  s.series[n] = { ...(s.series[n] || {}), [el.dataset.f]: el.value === '' ? null : +el.value };
+  log.sesiones = log.sesiones.slice(-30);
+  Store.set(el.dataset.k, log);
+});
+view.addEventListener('click', ev => { const b = ev.target.closest('[data-timer]'); if (b) Timer.start(+b.dataset.timer); });
