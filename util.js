@@ -8,4 +8,19 @@ const ultimaVez = (log, hoy) => {
   return s.length ? s[s.length - 1] : null;
 };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-if (typeof module !== 'undefined') module.exports = { DIAS, slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc };
+// logs: { [slug]: log }. Bloque hecho = todas las series de todos sus ejercicios con done hoy.
+const bloqueHecho = (logs, hoy, b) => b.ejercicios.every(e => {
+  const s = logs[slug(e.nombre)]?.sesiones?.find(x => x.fecha === hoy);
+  return !!s && Array.from({ length: b.series }, (_, n) => s.series?.[n]?.done).every(Boolean);
+});
+// Secuencia ejecutable de un bloque de cardio: pasos (con vuelta/de) y descansos intercalados.
+const expandirCardio = c => {
+  const out = [], V = c.vueltas || 1;
+  for (let v = 1; v <= V; v++) {
+    for (const p of c.pasos) for (let k = 0; k < (p.veces || 1); k++) out.push({ tipo: 'paso', nombre: p.nombre, seg: p.seg, reps: p.reps, vuelta: v, de: V });
+    if (v < V && c.descansoVuelta) out.push({ tipo: 'desc', seg: c.descansoVuelta, nombre: 'Descanso entre vueltas' });
+  }
+  if (c.descansoPaso) for (let i = out.length - 1; i > 0; i--) if (out[i].tipo === 'paso' && out[i - 1].tipo === 'paso') out.splice(i, 0, { tipo: 'desc', seg: c.descansoPaso, nombre: 'Descanso' });
+  return out;
+};
+if (typeof module !== 'undefined') module.exports = { DIAS, slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio };

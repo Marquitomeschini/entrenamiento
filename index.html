@@ -61,13 +61,19 @@ nav a{flex:1;text-align:center;padding:10px 0 8px;min-height:56px;font-size:11px
 nav a .ic{display:block;font-family:var(--disp);font-size:22px;line-height:1;margin-bottom:4px;font-weight:800}nav a.on{color:var(--gold)}
 #timer[hidden]{display:none}#timer{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:9}
 #timer b{font-family:var(--disp);font-size:120px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}#timer.done{background:var(--dropset)}#timer.done b{color:#fff}
-#timer .btn{width:min(320px,80vw)}#timer small{color:var(--mut);letter-spacing:.12em;text-transform:uppercase;font-size:12px}
+#timer .btn{width:min(320px,80vw)}#timer small{color:var(--gold);letter-spacing:.08em;text-transform:uppercase;font-size:16px;font-weight:700;text-align:center;padding:0 24px}
+#t-next{color:var(--mut);margin:0;min-height:1.4em;text-align:center;padding:0 24px}#timer.reps b{font-size:64px}#timer.done small{color:#fff}#timer.done #t-next{color:#fff}
+.chk{width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:var(--sur2);color:var(--mut);font-size:20px;cursor:pointer}.chk.on{background:var(--gold);color:#0c0b09;border-color:var(--gold)}.chk:focus-visible{outline:2px solid #fff}
+.log td:last-child{width:52px;padding-right:0}tr.done td{opacity:.55}tr.done td:last-child{opacity:1}
+.row.hecho .names{opacity:.5}.row.hecho .play{color:var(--gold);font-size:22px}
+.nota-libre{width:100%;min-height:44px;margin-top:10px;background:var(--sur2);border:1px solid var(--line);color:var(--tx);font:15px system-ui;padding:10px;border-radius:4px;resize:vertical}.nota-libre:focus{outline:2px solid var(--gold);outline-offset:-1px}
+.cardio .actions{margin:16px 0 0}
 @media(prefers-reduced-motion:no-preference){#timer.done{animation:flash .6s 3}@keyframes flash{50%{background:var(--bg)}}}
 </style>
 </head>
 <body>
 <main id="view"></main>
-<div id="timer" hidden><small>Descanso</small><b>0:00</b><button class="btn" id="timer-close">Listo</button></div>
+<div id="timer" hidden><small id="t-label">Descanso</small><b>0:00</b><p id="t-next"></p><button class="btn" id="timer-main">Listo</button><button class="btn ghost" id="timer-skip" hidden>Saltar</button></div>
 <nav>
   <a href="#/rutina" data-tab="rutina"><span class="ic">R</span>Rutina</a>
   <a href="#/videos" data-tab="videos"><span class="ic">▶</span>Videos</a>
@@ -79,5 +85,6 @@ nav a .ic{display:block;font-family:var(--disp);font-size:22px;line-height:1;mar
 <script src="store.js"></script>
 <script src="timer.js"></script>
 <script src="app.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body>
 </html>

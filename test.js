@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc } = require('./util.js');
+const { slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio } = require('./util.js');
 assert.equal(slug('Jalón en dorsalera agarre neutro'), 'jalon-en-dorsalera-agarre-neutro');
 assert.equal(fmtDesc(90), `1'30"`);
 assert.equal(fmtDesc(60), `1'`);
@@ -19,4 +19,24 @@ assert.equal(ultimaVez(log, '2026-09-12').fecha, '2026-09-10');
 assert.equal(ultimaVez({ sesiones: [] }, '2026-09-12'), null);
 assert.equal(ultimaVez(null, '2026-09-12'), null);
 assert.equal(esc('<b>&"'), '&lt;b&gt;&amp;&quot;');
+
+// bloqueHecho
+const b = { series: 2, ejercicios: [{ nombre: 'A' }, { nombre: 'B' }] };
+const logs = { a: { sesiones: [{ fecha: 'H', series: [{ done: true }, { done: true }] }] }, b: { sesiones: [{ fecha: 'H', series: [{ done: true }, { kg: 5, done: true }] }] } };
+assert.equal(bloqueHecho(logs, 'H', b), true);
+assert.equal(bloqueHecho({ ...logs, b: { sesiones: [{ fecha: 'H', series: [{ done: true }] }] } }, 'H', b), false);
+assert.equal(bloqueHecho({ ...logs, b: { sesiones: [{ fecha: 'AYER', series: [{ done: true }, { done: true }] }] } }, 'H', b), false);
+assert.equal(bloqueHecho({}, 'H', b), false);
+
+// expandirCardio
+const hiit = { vueltas: 3, descansoVuelta: 90, pasos: [{ nombre: 'x', reps: 8 }, { nombre: 'y', seg: 40 }, { nombre: 'z', reps: 20 }, { nombre: 'w', seg: 30 }] };
+const eh = expandirCardio(hiit);
+assert.equal(eh.length, 14);
+assert.equal(eh.filter(s => s.tipo === 'desc').length, 2);
+assert.equal(eh[4].tipo, 'desc'); assert.equal(eh[4].seg, 90);
+assert.equal(eh[13].tipo, 'paso'); assert.equal(eh[5].vuelta, 2); assert.equal(eh[5].de, 3);
+const pas = { descansoPaso: 30, pasos: [{ nombre: 'a', seg: 180 }, { nombre: 'b', seg: 40, veces: 2 }, { nombre: 'c', seg: 30 }] };
+assert.deepEqual(expandirCardio(pas).map(s => s.tipo), ['paso', 'desc', 'paso', 'desc', 'paso', 'desc', 'paso']);
+const cam = { pasos: [{ nombre: 'a', seg: 300 }, { nombre: 'b', seg: 300 }] };
+assert.deepEqual(expandirCardio(cam).map(s => s.tipo), ['paso', 'paso']);
 console.log('OK util');
