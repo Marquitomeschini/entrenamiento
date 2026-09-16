@@ -69,7 +69,8 @@ function renderEjercicio(id, i) {
         + (ultima && b.badges.includes('DROPSET') ? `<tr class="drop"><td>↓ drop</td><td>${inp('dropKg', u.dropKg ?? 'kg', 'decimal', n, 0, s.dropKg)}</td><td>${inp('dropReps', 'reps', 'numeric', n, 0, s.dropReps)}</td><td></td></tr>` : '');
     }).join('');
     const ultTxt = ult ? `Última vez (${ult.fecha.slice(5).split('-').reverse().join('/')}): ${ult.series.filter(s => s?.kg).map(s => `${s.kg}×${s.reps ?? '?'}`).join(' · ')}` : 'Sin registro previo';
-    return `<article class="ej">${e.video ? video(e.video) : '<div class="novideo">Sin video del entrenador para este ejercicio</div>'}
+    const ref = e.videoRef ? `<p class="refv">Video de referencia: <b>${esc(DATA.videos.find(v => v.id === e.video)?.titulo || '')}</b> · variante parecida, no es exactamente este ejercicio</p>` : '';
+    return `<article class="ej">${e.video ? video(e.video) + ref : '<div class="novideo">Sin video del entrenador para este ejercicio</div>'}
       <h2>${esc(e.nombre)}</h2>${e.nota ? `<p class="nota">${esc(e.nota)}</p>` : ''}<p class="ult">${ultTxt}</p>
       <table class="log"><thead><tr><th>Serie</th><th>kg</th><th>reps</th><th></th></tr></thead><tbody>${aprox}${filas}</tbody></table>
       <textarea class="nota-libre" data-nota="${k}" placeholder="Notas: banco, polea, agarre…" rows="1">${esc(Store.get('nota:' + k) || '')}</textarea></article>`;

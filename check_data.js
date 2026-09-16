@@ -14,7 +14,10 @@ for (const d of plan.dias) {
     if (!Array.isArray(b.badges)) errs.push(`${d.id}: badges no es array (${n})`);
     if (b.aprox && (b.aproxReps?.length !== b.aprox)) errs.push(`${d.id}: aproxReps debe tener ${b.aprox} valores (${n})`);
     if (!b.ejercicios?.length) errs.push(`${d.id}: bloque sin ejercicios`);
-    for (const e of b.ejercicios || []) if (e.video && !ids.has(e.video)) errs.push(`${d.id}: video inexistente: ${e.nombre} → ${e.video}`);
+    for (const e of b.ejercicios || []) {
+      if (e.video && !ids.has(e.video)) errs.push(`${d.id}: video inexistente: ${e.nombre} → ${e.video}`);
+      if (e.videoRef && !e.video) errs.push(`${d.id}: videoRef sin video (${e.nombre})`);
+    }
   }
   const c = d.cardio;
   if (c) {
