@@ -1,5 +1,5 @@
 const view = document.getElementById('view');
-const badge = b => `<i class="b b-${slug(b)}">${esc(b)}</i>`;
+const badge = b => `<i class="b b-${slug(b)}" data-tec="${esc(b)}" role="button" tabindex="0">${esc(b)}</i>`;
 const video = id => `<div class="vid"><video src="videos/${encodeURIComponent(id)}.mp4" controls playsinline preload="metadata"></video></div>`;
 const serTxt = b => b.aprox ? `${b.aprox}+${b.series}` : String(b.series);
 const dia = id => DATA.plan.dias.find(x => x.id === id);
@@ -39,29 +39,48 @@ function renderDia(id) {
   return `<header class="top"><a class="back" href="#/rutina">‹ Rutina</a><span class="eyebrow">${DIAS[d.dia]}</span><h1>${esc(d.titulo)}</h1></header><div class="list">${rows}</div>${cardio}`;
 }
 
+// Estado del bloque abierto (para la guía de biserie): dones[ej][n].
+let actual = null;
+const nombreSerie = (b, p) => `<b>${esc(b.ejercicios[p.ej].nombre)}</b> · serie ${p.n + 1}`;
+const guiaHtml = (b, dones) => { const [a, s] = pendientes(b, dones); return a ? `Ahora: ${nombreSerie(b, a)}${s ? `<br>Después: ${nombreSerie(b, s)}` : ''}` : 'Bloque completo ✓'; };
+function marcarAhora() {
+  if (!actual) return;
+  view.querySelectorAll('tr.ahora').forEach(t => t.classList.remove('ahora'));
+  const [a] = pendientes(actual.b, actual.dones);
+  if (a) document.getElementById(`r-${a.ej}-${a.n}`)?.classList.add('ahora');
+  const g = document.getElementById('guia'); if (g) g.innerHTML = guiaHtml(actual.b, actual.dones);
+}
+
 function renderEjercicio(id, i) {
   const d = dia(id), b = d?.bloques[+i]; if (!b) return renderRutina();
-  const hoy = hoyISO();
+  const hoy = hoyISO(), esp = especial(b), dones = [];
   const parts = b.ejercicios.map((e, idx) => {
     const k = slug(e.nombre), log = Store.get(k), ult = ultimaVez(log, hoy), last = idx === b.ejercicios.length - 1;
     const sh = log?.sesiones?.find(s => s.fecha === hoy), obj = objetivos(e.reps || b.reps, b.series);
+    dones[idx] = Array.from({ length: b.series }, (_, n) => !!sh?.series?.[n]?.done);
+    const inp = (f, ph, mode, n, a, v) => `<input type="number" inputmode="${mode}"${mode === 'decimal' ? ' step="0.5"' : ''} placeholder="${esc(ph)}" value="${esc(v ?? '')}" data-k="${k}" data-n="${n}"${a ? ' data-a="1"' : ''} data-f="${f}" aria-label="${f} ${a ? 'aproximación' : 'serie'} ${n + 1}">`;
+    const chk = (n, a, on) => `<button class="chk${on ? ' on' : ''}" data-chk data-k="${k}" data-n="${n}" data-ej="${idx}"${a ? ' data-a="1"' : ''} data-last="${last}" aria-label="${a ? 'Aproximación' : 'Serie'} ${n + 1} hecha">✓</button>`;
+    const aprox = (b.aproxReps || []).map((r, n) => { const s = sh?.aprox?.[n] || {}, u = ult?.aprox?.[n] || {};
+      return `<tr class="aprox${s.done ? ' done' : ''}"><td>A${n + 1}<small>${r} reps · ligero</small></td><td>${inp('kg', u.kg ?? 'kg', 'decimal', n, 1, s.kg)}</td><td>${inp('reps', 'reps', 'numeric', n, 1, s.reps ?? r)}</td><td>${chk(n, 1, s.done)}</td></tr>`; }).join('');
     const filas = Array.from({ length: b.series }, (_, n) => {
-      const s = sh?.series?.[n] || {}, u = ult?.series?.[n] || {}, o = obj?.[n];
-      const val = { kg: s.kg ?? '', reps: s.reps ?? (typeof o === 'number' ? o : '') };
-      const inp = (f, ph, mode, step) => `<input type="number" inputmode="${mode}"${step ? ` step="${step}"` : ''} placeholder="${esc(u[f] ?? ph)}" value="${esc(val[f])}" data-k="${k}" data-n="${n}" data-f="${f}" aria-label="${f} serie ${n + 1}">`;
-      return `<tr${s.done ? ' class="done"' : ''}><td>${n + 1}${o != null ? `<small>${esc(o === 'fallo' ? 'al fallo' : o + ' reps')}</small>` : ''}</td><td>${inp('kg', 'kg', 'decimal', '0.5')}</td><td>${inp('reps', 'reps', 'numeric')}</td><td><button class="chk${s.done ? ' on' : ''}" data-chk data-k="${k}" data-n="${n}" data-last="${last}" aria-label="Serie ${n + 1} hecha">✓</button></td></tr>`;
+      const s = sh?.series?.[n] || {}, u = ult?.series?.[n] || {}, o = obj?.[n], ultima = n === b.series - 1 && esp;
+      const lbl = ultima ? esp : o == null ? '' : o === 'fallo' ? 'al fallo' : `${o} reps`;
+      return `<tr id="r-${idx}-${n}" class="${s.done ? 'done' : ''}${ultima ? ' especial' : ''}"><td>${n + 1}${lbl ? `<small>${esc(lbl)}</small>` : ''}</td><td>${inp('kg', u.kg ?? 'kg', 'decimal', n, 0, s.kg)}</td><td>${inp('reps', u.reps ?? 'reps', 'numeric', n, 0, s.reps ?? (typeof o === 'number' ? o : ''))}</td><td>${chk(n, 0, s.done)}</td></tr>`
+        + (ultima && b.badges.includes('DROPSET') ? `<tr class="drop"><td>↓ drop</td><td>${inp('dropKg', u.dropKg ?? 'kg', 'decimal', n, 0, s.dropKg)}</td><td>${inp('dropReps', 'reps', 'numeric', n, 0, s.dropReps)}</td><td></td></tr>` : '');
     }).join('');
     const ultTxt = ult ? `Última vez (${ult.fecha.slice(5).split('-').reverse().join('/')}): ${ult.series.filter(s => s?.kg).map(s => `${s.kg}×${s.reps ?? '?'}`).join(' · ')}` : 'Sin registro previo';
     return `<article class="ej">${e.video ? video(e.video) : '<div class="novideo">Sin video del entrenador para este ejercicio</div>'}
       <h2>${esc(e.nombre)}</h2>${e.nota ? `<p class="nota">${esc(e.nota)}</p>` : ''}<p class="ult">${ultTxt}</p>
-      <table class="log"><thead><tr><th>Serie</th><th>kg</th><th>reps</th><th></th></tr></thead><tbody>${filas}</tbody></table>
+      <table class="log"><thead><tr><th>Serie</th><th>kg</th><th>reps</th><th></th></tr></thead><tbody>${aprox}${filas}</tbody></table>
       <textarea class="nota-libre" data-nota="${k}" placeholder="Notas: banco, polea, agarre…" rows="1">${esc(Store.get('nota:' + k) || '')}</textarea></article>`;
   });
+  actual = { b, dones };
   const next = d.bloques[+i + 1] ? `<a class="btn ghost" href="#/ej/${d.id}/${+i + 1}">Siguiente ›</a>` : `<a class="btn ghost" href="#/dia/${d.id}">Fin · volver al día</a>`;
   return `<header class="top"><a class="back" href="#/dia/${d.id}">‹ ${esc(d.titulo)}</a>
     <div class="prog"><span>Bloque ${+i + 1} de ${d.bloques.length}</span><i><b style="width:${Math.round((+i + 1) / d.bloques.length * 100)}%"></b></i></div>
     <div class="spec"><span><b>${serTxt(b)}</b> series</span><span>${esc(b.reps)}</span><span>desc. <b>${fmtDesc(b.descanso)}</b></span></div>
-    ${b.badges.length ? `<div class="badges">${b.badges.map(badge).join('')}</div>` : ''}</header>${parts.join('')}
+    ${b.badges.length ? `<div class="badges">${b.badges.map(badge).join('')}</div>` : ''}</header>
+    ${b.ejercicios.length > 1 ? `<div class="guia" id="guia">${guiaHtml(b, dones)}</div>` : ''}${parts.join('')}
     <div class="actions">${b.descanso ? `<button class="btn" data-timer="${b.descanso}">Descanso ${fmtDesc(b.descanso)}</button>` : ''}${next}</div>`;
 }
 
@@ -95,7 +114,9 @@ function route() {
   scrollPos[prevHash] = window.scrollY;
   const [name = 'rutina', ...args] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const fn = routes[name] || renderRutina;
+  actual = null;
   view.innerHTML = fn(...args);
+  if (name === 'ej') marcarAhora();
   const fila = name === 'dia' && prevHash.startsWith('#/ej/') && document.getElementById('b-' + prevHash.split('/')[3]);
   if (fila) fila.scrollIntoView({ block: 'center' }); else window.scrollTo(0, scrollPos[location.hash] ?? 0);
   prevHash = location.hash;
@@ -115,22 +136,39 @@ function sesionHoy(k) {
   log.sesiones = log.sesiones.slice(-30);
   return [log, s];
 }
+const num = v => v === '' || v == null ? null : +v;
 view.addEventListener('change', ev => {
   const el = ev.target;
   if (el.dataset.nota !== undefined) { const v = el.value.trim(); v ? Store.set('nota:' + el.dataset.nota, v) : localStorage.removeItem('gym:nota:' + el.dataset.nota); return; }
   if (!el.dataset.k) return;
-  const [log, s] = sesionHoy(el.dataset.k), n = +el.dataset.n;
-  s.series[n] = { ...(s.series[n] || {}), [el.dataset.f]: el.value === '' ? null : +el.value };
+  const [log, s] = sesionHoy(el.dataset.k), n = +el.dataset.n, arr = el.dataset.a ? (s.aprox ||= []) : s.series;
+  arr[n] = { ...(arr[n] || {}), [el.dataset.f]: num(el.value) };
   Store.set(el.dataset.k, log);
 });
+
+// Definición de una técnica al tocar su etiqueta.
+const tec = document.getElementById('tec');
+function mostrarTec(nombre) {
+  const t = DATA.tecnicas.find(x => x.nombre === nombre); if (!t) return;
+  const b = document.getElementById('tec-b'); b.className = `b b-${slug(t.nombre)}`; b.textContent = t.nombre;
+  document.getElementById('tec-t').textContent = t.texto; tec.hidden = false;
+}
+tec.addEventListener('click', () => { tec.hidden = true; });
+view.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset.tec) mostrarTec(ev.target.dataset.tec); });
+
 view.addEventListener('click', ev => {
+  const e = ev.target.closest('[data-tec]'); if (e) { ev.preventDefault(); ev.stopPropagation(); return mostrarTec(e.dataset.tec); }
   const t = ev.target.closest('[data-timer]'); if (t) { wake(true); return Timer.start(+t.dataset.timer); }
   const c = ev.target.closest('[data-cardio]'); if (c) { wake(true); return Timer.run(expandirCardio(dia(c.dataset.cardio).cardio)); }
   const b = ev.target.closest('[data-chk]'); if (!b) return;
-  const [log, s] = sesionHoy(b.dataset.k), n = +b.dataset.n, done = !(s.series[n]?.done), tr = b.closest('tr');
-  const val = f => { const v = tr.querySelector(`[data-f="${f}"]`).value; return v === '' ? null : +v; };
-  s.series[n] = { kg: val('kg'), reps: val('reps'), done }; // el ✓ guarda lo que haya en la fila (incluido el objetivo precargado)
+  const [log, s] = sesionHoy(b.dataset.k), n = +b.dataset.n, a = !!b.dataset.a, arr = a ? (s.aprox ||= []) : s.series, done = !(arr[n]?.done), tr = b.closest('tr');
+  const drop = tr.nextElementSibling?.classList.contains('drop') ? tr.nextElementSibling : null;
+  const val = (root, f) => num(root?.querySelector(`[data-f="${f}"]`)?.value);
+  // El ✓ guarda lo que haya en la fila (incluido el objetivo precargado y el drop si hay).
+  arr[n] = { kg: val(tr, 'kg'), reps: val(tr, 'reps'), ...(drop ? { dropKg: val(drop, 'dropKg'), dropReps: val(drop, 'dropReps') } : {}), done };
   Store.set(b.dataset.k, log);
-  b.classList.toggle('on', done); b.closest('tr').classList.toggle('done', done);
+  b.classList.toggle('on', done); tr.classList.toggle('done', done);
+  if (a) return; // aproximación: sin timer ni guía
+  if (actual) { actual.dones[+b.dataset.ej][n] = done; marcarAhora(); }
   if (done && b.dataset.last === 'true') { const seg = +document.querySelector('[data-timer]')?.dataset.timer; if (seg) { wake(true); Timer.start(seg); } }
 });

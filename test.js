@@ -47,4 +47,16 @@ const pas = { descansoPaso: 30, pasos: [{ nombre: 'a', seg: 180 }, { nombre: 'b'
 assert.deepEqual(expandirCardio(pas).map(s => s.tipo), ['paso', 'desc', 'paso', 'desc', 'paso', 'desc', 'paso']);
 const cam = { pasos: [{ nombre: 'a', seg: 300 }, { nombre: 'b', seg: 300 }] };
 assert.deepEqual(expandirCardio(cam).map(s => s.tipo), ['paso', 'paso']);
+// especial
+const { especial, pendientes } = require('./util.js');
+assert.equal(especial({ badges: ['APROX', 'DROPSET', 'FALLO'], reps: '10 - 6 · dropset y fallo en la última' }), 'dropset + fallo');
+assert.equal(especial({ badges: ['DROPSET', 'FALLO'], reps: '15 - 10 - 8 · dropset y fallo en la última' }), 'dropset + fallo');
+assert.equal(especial({ badges: ['BISERIE', 'FALLO'], reps: 'Al fallo en ambos' }), null);
+assert.equal(especial({ badges: [], reps: '10 - 8 - 6 subiendo el peso' }), null);
+// pendientes
+const bb = { series: 2, ejercicios: [{ nombre: 'A' }, { nombre: 'B' }] };
+assert.deepEqual(pendientes(bb, [[false, false], [false, false]]), [{ ej: 0, n: 0 }, { ej: 1, n: 0 }, { ej: 0, n: 1 }, { ej: 1, n: 1 }]);
+assert.deepEqual(pendientes(bb, [[true, false], [false, false]]), [{ ej: 1, n: 0 }, { ej: 0, n: 1 }, { ej: 1, n: 1 }]);
+assert.deepEqual(pendientes(bb, [[true, true], [true, true]]), []);
+assert.deepEqual(pendientes(bb, []), [{ ej: 0, n: 0 }, { ej: 1, n: 0 }, { ej: 0, n: 1 }, { ej: 1, n: 1 }]);
 console.log('OK util');

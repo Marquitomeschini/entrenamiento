@@ -12,6 +12,7 @@ for (const d of plan.dias) {
     if (!(b.series > 0)) errs.push(`${d.id}: series inválidas (${n})`);
     if (typeof b.descanso !== 'number') errs.push(`${d.id}: descanso no numérico (${n})`);
     if (!Array.isArray(b.badges)) errs.push(`${d.id}: badges no es array (${n})`);
+    if (b.aprox && (b.aproxReps?.length !== b.aprox)) errs.push(`${d.id}: aproxReps debe tener ${b.aprox} valores (${n})`);
     if (!b.ejercicios?.length) errs.push(`${d.id}: bloque sin ejercicios`);
     for (const e of b.ejercicios || []) if (e.video && !ids.has(e.video)) errs.push(`${d.id}: video inexistente: ${e.nombre} → ${e.video}`);
   }

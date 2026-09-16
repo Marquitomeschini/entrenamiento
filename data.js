@@ -11,11 +11,11 @@ const HIIT = { titulo: 'Cardio HIIT — post entrenamiento', sub: '3 vueltas · 
 window.DATA = {
   plan: { mes: 1, dias: [
     { id: 'lun', dia: 1, titulo: 'Torso + HIIT', bloques: [
-      { aprox: 2, series: 3, reps: '10 - 8 - 6 subiendo el peso', descanso: 90, badges: ['APROX'],
+      { aprox: 2, aproxReps: [5, 3], series: 3, reps: '10 - 8 - 6 subiendo el peso', descanso: 90, badges: ['APROX'],
         ejercicios: [{ nombre: 'Cruces con polea en banco 90° (emulando pect deck)', nota: '2 series de aproximación (5 y 3 reps) con peso ligero + 3 efectivas. El video muestra el pect deck: mismo movimiento.', video: '1sYMlhKOOZZdZc4qABt5ywxXvQhYpepGj' }] },
       { series: 4, reps: '20 - 15 - 12 - 10 subiendo el peso', descanso: 90, badges: [],
         ejercicios: [{ nombre: 'Pullover con polea soga', nota: 'Mantener 2 segundos abajo en cada repetición.', video: '1YBeCt9UwF80RYhNFNNsytD44LB6BjhXH' }] },
-      { aprox: 2, series: 2, reps: '10 - 6 · dropset y fallo en la última', descanso: 120, badges: ['APROX', 'DROPSET', 'FALLO'],
+      { aprox: 2, aproxReps: [5, 3], series: 2, reps: '10 - 6 · dropset y fallo en la última', descanso: 120, badges: ['APROX', 'DROPSET', 'FALLO'],
         ejercicios: [{ nombre: 'Press inclinado con mancuernas', nota: '2 series de aproximación (5 y 3 reps) con peso ligero + 2 efectivas.', video: '1Inz38000Wa_oKI9ovOB2X5SobloBPMT4' }] },
       { series: 2, reps: '10 - 6 subiendo el peso', descanso: 90, badges: [],
         ejercicios: [{ nombre: 'Jalón en polea arrodillado agarre neutro unilateral', video: '1oR58_IRjLuhFJA9Y-C3Mm-4K3bBwiIK1' }] },

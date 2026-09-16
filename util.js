@@ -31,4 +31,15 @@ const objetivos = (txt, n) => {
   const seq = m[1].split('-').map(x => +x.trim());
   return seq.length === n ? seq : seq.length === 1 ? Array(n).fill(seq[0]) : null;
 };
-if (typeof module !== 'undefined') module.exports = { DIAS, slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio, objetivos };
+// Última serie especial: "dropset y fallo en la última" → 'dropset + fallo'; si no aplica → null.
+const especial = b => {
+  const t = b.badges.filter(x => x === 'DROPSET' || x === 'FALLO');
+  return t.length && /última/i.test(b.reps) ? t.map(x => x.toLowerCase()).join(' + ') : null;
+};
+// Series pendientes en orden de biserie (serie 1 de A, serie 1 de B, serie 2 de A…). dones[ej][n] = true si está hecha.
+const pendientes = (b, dones) => {
+  const out = [];
+  for (let n = 0; n < b.series; n++) b.ejercicios.forEach((_, i) => { if (!dones[i]?.[n]) out.push({ ej: i, n }); });
+  return out;
+};
+if (typeof module !== 'undefined') module.exports = { DIAS, slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio, objetivos, especial, pendientes };

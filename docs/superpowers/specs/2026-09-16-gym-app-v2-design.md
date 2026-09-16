@@ -102,3 +102,13 @@ Límite: iOS puede vaciar el cache tras semanas sin uso; se vuelve a llenar.
 ## Fuera de alcance
 
 Historial gráfico, resumen semanal, sync, notificaciones.
+
+## v3 (mismo día, tras probar en el gym)
+
+- Scroll: posición guardada por ruta; al volver de `#/ej/<d>/<i>` a `#/dia/<d>` se centra la fila `#b-<i>`; el timer guarda `scrollY` al abrir y lo restaura al cerrar.
+- Cabecera de ejercicio: "Bloque i de N" + barra.
+- Objetivo de reps: `objetivos(e.reps || b.reps, series)`; el input reps arranca con el objetivo; el ✓ guarda lo que haya en la fila (kg, reps, drop).
+- Aproximación: `aproxReps: [5, 3]` → filas A1/A2 (`s.aprox[n]`), ✓ sin timer, no cuentan para `bloqueHecho`.
+- Serie especial: `especial(b)` → última fila en rojo con "dropset + fallo" y fila `drop` (`dropKg`/`dropReps`) si hay DROPSET.
+- Etiquetas: `[data-tec]` abre `#tec` (sheet inferior) con la definición; no navega.
+- Guía de biserie: `pendientes(b, dones)` → "Ahora: … / Después: …" y `tr.ahora` resaltada; se actualiza con cada ✓.
