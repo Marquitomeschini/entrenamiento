@@ -1,5 +1,13 @@
 const assert = require('assert');
-const { slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio } = require('./util.js');
+const { slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio, objetivos } = require('./util.js');
+assert.deepEqual(objetivos('10 - 8 - 6 subiendo el peso', 3), [10, 8, 6]);
+assert.deepEqual(objetivos('20 - 15 - 12 - 10 subiendo el peso', 4), [20, 15, 12, 10]);
+assert.deepEqual(objetivos('10 - 6 · dropset y fallo en la última', 2), [10, 6]);
+assert.deepEqual(objetivos('Al fallo en ambos', 2), ['fallo', 'fallo']);
+assert.deepEqual(objetivos('10 por pierna', 2), [10, 10]);
+assert.deepEqual(objetivos('12 en vuelos · 20 - 15 - 12 en face pull', 3), [12, 12, 12]);
+assert.equal(objetivos('15 - 10 - 8 subiendo', 2), null);
+assert.equal(objetivos('Fallo diamantes → fallo anchas', 1), null);
 assert.equal(slug('Jalón en dorsalera agarre neutro'), 'jalon-en-dorsalera-agarre-neutro');
 assert.equal(fmtDesc(90), `1'30"`);
 assert.equal(fmtDesc(60), `1'`);

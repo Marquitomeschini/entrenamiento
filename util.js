@@ -23,4 +23,12 @@ const expandirCardio = c => {
   if (c.descansoPaso) for (let i = out.length - 1; i > 0; i--) if (out[i].tipo === 'paso' && out[i - 1].tipo === 'paso') out.splice(i, 0, { tipo: 'desc', seg: c.descansoPaso, nombre: 'Descanso' });
   return out;
 };
-if (typeof module !== 'undefined') module.exports = { DIAS, slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio };
+// Objetivo de reps por serie a partir del texto del plan: "10 - 8 - 6 subiendo…" → [10, 8, 6]; "Al fallo…" → ['fallo', …];
+// "10 por pierna" → [10, 10]. Si la secuencia no cuadra con las series → null (no se muestra objetivo).
+const objetivos = (txt, n) => {
+  if (/^al fallo/i.test(txt)) return Array(n).fill('fallo');
+  const m = /^(\d+(?:\s*-\s*\d+)*)/.exec(txt); if (!m) return null;
+  const seq = m[1].split('-').map(x => +x.trim());
+  return seq.length === n ? seq : seq.length === 1 ? Array(n).fill(seq[0]) : null;
+};
+if (typeof module !== 'undefined') module.exports = { DIAS, slug, fmtDesc, diaDeHoy, hoyISO, ultimaVez, esc, bloqueHecho, expandirCardio, objetivos };

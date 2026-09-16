@@ -30,7 +30,7 @@ function renderRutina() {
 function renderDia(id) {
   const d = dia(id); if (!d) return renderRutina();
   const logs = logsDe(d), hoy = hoyISO();
-  const rows = d.bloques.map((b, i) => { const ok = bloqueHecho(logs, hoy, b); return `<a class="row${b.ejercicios.length > 1 ? ' multi' : ''}${ok ? ' hecho' : ''}" href="#/ej/${d.id}/${i}">
+  const rows = d.bloques.map((b, i) => { const ok = bloqueHecho(logs, hoy, b); return `<a id="b-${i}" class="row${b.ejercicios.length > 1 ? ' multi' : ''}${ok ? ' hecho' : ''}" href="#/ej/${d.id}/${i}">
     <div class="names">${b.ejercicios.map(e => `<b>${esc(e.nombre)}</b>`).join('<span class="con">+</span>')}${b.badges.length ? `<div class="badges">${b.badges.map(badge).join('')}</div>` : ''}</div>
     ${ok ? '<span class="play">✓</span>' : `<div class="nums"><span class="ser">${serTxt(b)}</span><span class="reps">${esc(b.reps)}</span><span class="desc">${fmtDesc(b.descanso)}</span></div>`}</a>`; }).join('');
   const c = d.cardio;
@@ -44,11 +44,12 @@ function renderEjercicio(id, i) {
   const hoy = hoyISO();
   const parts = b.ejercicios.map((e, idx) => {
     const k = slug(e.nombre), log = Store.get(k), ult = ultimaVez(log, hoy), last = idx === b.ejercicios.length - 1;
-    const sh = log?.sesiones?.find(s => s.fecha === hoy);
+    const sh = log?.sesiones?.find(s => s.fecha === hoy), obj = objetivos(e.reps || b.reps, b.series);
     const filas = Array.from({ length: b.series }, (_, n) => {
-      const s = sh?.series?.[n] || {}, u = ult?.series?.[n] || {};
-      const inp = (f, ph, mode, step) => `<input type="number" inputmode="${mode}"${step ? ` step="${step}"` : ''} placeholder="${esc(u[f] ?? ph)}" value="${esc(s[f] ?? '')}" data-k="${k}" data-n="${n}" data-f="${f}" aria-label="${f} serie ${n + 1}">`;
-      return `<tr${s.done ? ' class="done"' : ''}><td>${n + 1}</td><td>${inp('kg', 'kg', 'decimal', '0.5')}</td><td>${inp('reps', 'reps', 'numeric')}</td><td><button class="chk${s.done ? ' on' : ''}" data-chk data-k="${k}" data-n="${n}" data-last="${last}" aria-label="Serie ${n + 1} hecha">✓</button></td></tr>`;
+      const s = sh?.series?.[n] || {}, u = ult?.series?.[n] || {}, o = obj?.[n];
+      const val = { kg: s.kg ?? '', reps: s.reps ?? (typeof o === 'number' ? o : '') };
+      const inp = (f, ph, mode, step) => `<input type="number" inputmode="${mode}"${step ? ` step="${step}"` : ''} placeholder="${esc(u[f] ?? ph)}" value="${esc(val[f])}" data-k="${k}" data-n="${n}" data-f="${f}" aria-label="${f} serie ${n + 1}">`;
+      return `<tr${s.done ? ' class="done"' : ''}><td>${n + 1}${o != null ? `<small>${esc(o === 'fallo' ? 'al fallo' : o + ' reps')}</small>` : ''}</td><td>${inp('kg', 'kg', 'decimal', '0.5')}</td><td>${inp('reps', 'reps', 'numeric')}</td><td><button class="chk${s.done ? ' on' : ''}" data-chk data-k="${k}" data-n="${n}" data-last="${last}" aria-label="Serie ${n + 1} hecha">✓</button></td></tr>`;
     }).join('');
     const ultTxt = ult ? `Última vez (${ult.fecha.slice(5).split('-').reverse().join('/')}): ${ult.series.filter(s => s?.kg).map(s => `${s.kg}×${s.reps ?? '?'}`).join(' · ')}` : 'Sin registro previo';
     return `<article class="ej">${e.video ? video(e.video) : '<div class="novideo">Sin video del entrenador para este ejercicio</div>'}
@@ -58,6 +59,7 @@ function renderEjercicio(id, i) {
   });
   const next = d.bloques[+i + 1] ? `<a class="btn ghost" href="#/ej/${d.id}/${+i + 1}">Siguiente ›</a>` : `<a class="btn ghost" href="#/dia/${d.id}">Fin · volver al día</a>`;
   return `<header class="top"><a class="back" href="#/dia/${d.id}">‹ ${esc(d.titulo)}</a>
+    <div class="prog"><span>Bloque ${+i + 1} de ${d.bloques.length}</span><i><b style="width:${Math.round((+i + 1) / d.bloques.length * 100)}%"></b></i></div>
     <div class="spec"><span><b>${serTxt(b)}</b> series</span><span>${esc(b.reps)}</span><span>desc. <b>${fmtDesc(b.descanso)}</b></span></div>
     ${b.badges.length ? `<div class="badges">${b.badges.map(badge).join('')}</div>` : ''}</header>${parts.join('')}
     <div class="actions">${b.descanso ? `<button class="btn" data-timer="${b.descanso}">Descanso ${fmtDesc(b.descanso)}</button>` : ''}${next}</div>`;
@@ -86,11 +88,17 @@ const renderTecnicas = () => `<header class="top"><span class="eyebrow">Referenc
 const routes = { rutina: renderRutina, dia: renderDia, ej: renderEjercicio, videos: renderVideos, video: renderVideo, comida: renderComida, tecnicas: renderTecnicas };
 const TAB = { dia: 'rutina', ej: 'rutina', video: 'videos' };
 
+// Al volver atrás, la pantalla queda donde estabas: posición guardada por ruta, y al salir de un ejercicio se centra su fila.
+const scrollPos = {};
+let prevHash = location.hash;
 function route() {
+  scrollPos[prevHash] = window.scrollY;
   const [name = 'rutina', ...args] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const fn = routes[name] || renderRutina;
   view.innerHTML = fn(...args);
-  window.scrollTo(0, 0);
+  const fila = name === 'dia' && prevHash.startsWith('#/ej/') && document.getElementById('b-' + prevHash.split('/')[3]);
+  if (fila) fila.scrollIntoView({ block: 'center' }); else window.scrollTo(0, scrollPos[location.hash] ?? 0);
+  prevHash = location.hash;
   const tab = TAB[name] || name;
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
   wake(name === 'ej' || Timer.activo());
@@ -119,8 +127,9 @@ view.addEventListener('click', ev => {
   const t = ev.target.closest('[data-timer]'); if (t) { wake(true); return Timer.start(+t.dataset.timer); }
   const c = ev.target.closest('[data-cardio]'); if (c) { wake(true); return Timer.run(expandirCardio(dia(c.dataset.cardio).cardio)); }
   const b = ev.target.closest('[data-chk]'); if (!b) return;
-  const [log, s] = sesionHoy(b.dataset.k), n = +b.dataset.n, done = !(s.series[n]?.done);
-  s.series[n] = { ...(s.series[n] || {}), done };
+  const [log, s] = sesionHoy(b.dataset.k), n = +b.dataset.n, done = !(s.series[n]?.done), tr = b.closest('tr');
+  const val = f => { const v = tr.querySelector(`[data-f="${f}"]`).value; return v === '' ? null : +v; };
+  s.series[n] = { kg: val('kg'), reps: val('reps'), done }; // el ✓ guarda lo que haya en la fila (incluido el objetivo precargado)
   Store.set(b.dataset.k, log);
   b.classList.toggle('on', done); b.closest('tr').classList.toggle('done', done);
   if (done && b.dataset.last === 'true') { const seg = +document.querySelector('[data-timer]')?.dataset.timer; if (seg) { wake(true); Timer.start(seg); } }

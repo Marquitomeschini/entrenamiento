@@ -42,9 +42,10 @@ const Timer = (() => {
       skip.hidden = true;
     }
   }
-  function run(list) { audio(); steps = list; i = 0; el.hidden = false; mostrar(); }
+  let y = 0; // scroll de la página al abrir, para dejarla igual al cerrar
+  function run(list) { audio(); y = window.scrollY; steps = list; i = 0; el.hidden = false; mostrar(); }
   function start(seg) { run([{ tipo: 'desc', seg, nombre: 'Descanso' }]); }
-  function close() { stop(); el.hidden = true; api.onClose?.(); }
+  function close() { if (el.hidden) return; stop(); el.hidden = true; window.scrollTo(0, y); api.onClose?.(); }
   // ponytail: si iOS pausa la página, al volver se repinta con la hora real pero solo avanza un paso; sin aviso en fondo.
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !el.hidden && tick) paint(); });
   return api;
